@@ -1,6 +1,6 @@
 import React from 'react'
 
-const Header = () => {
+const Header = (props) => {
   return (
     <header className="d-flex justify-between align-center p-40">
         <div className="d-flex align-center">
@@ -11,7 +11,7 @@ const Header = () => {
             </div>
         </div>
         <ul className="headerRight d-flex align-center justify-between">
-            <li className="d-flex align-center">
+            <li onClick={props.onClickCart} className="d-flex align-center cu-p">
                 <img width={18} src="./img/cart.svg" alt="Cart" />
                 <span>1205 руб.</span>
             </li>
