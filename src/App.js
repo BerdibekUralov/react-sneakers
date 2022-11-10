@@ -9,6 +9,7 @@ import axios from "axios";
 function App() {
   const [items, setItems] = useState([]);
   const [cartItems, setCartItems] = useState([]);
+  const [favorites, setFavorites] = useState([])
   const [cartOpened, setCartOpened] = useState(false);
   const [searchValue, setSearchValue] = React.useState('');
 
@@ -30,6 +31,34 @@ function App() {
     setSearchValue(event.target.value);
   };
 
+  const onRemoveItem = (id) => {
+    try {
+      axios.delete(`https://60d62397943aa60017768e77.mockapi.io/cart/${id}`);
+      setCartItems((prev) => prev.filter((item) => Number(item.id) !== Number(id)));
+    } catch (error) {
+      alert('Ошибка при удалении из корзины');
+      console.error(error);
+    }
+  };
+
+  const onAddToFavorite = async (obj) => {
+    try {
+      if (favorites.find((favObj) => Number(favObj.id) === Number(obj.id))) {
+        axios.delete(`https://60d62397943aa60017768e77.mockapi.io/favorites/${obj.id}`);
+        setFavorites((prev) => prev.filter((item) => Number(item.id) !== Number(obj.id)));
+      } else {
+        const { data } = await axios.post(
+          'https://60d62397943aa60017768e77.mockapi.io/favorites',
+          obj,
+        );
+        setFavorites((prev) => [...prev, data]);
+      }
+    } catch (error) {
+      alert('Не удалось добавить в фавориты');
+      console.error(error);
+    }
+  };
+
   const filtredItems = items.filter((item) =>
       item.title.toLowerCase().includes(searchValue.toLowerCase()),
   );
@@ -40,7 +69,8 @@ function App() {
         <Drawer
           key={new Date()}
           cartItems={cartItems} 
-          onClose={() => setCartOpened(false)} 
+          onClose={() => setCartOpened(false)}
+          onRemove = {onRemoveItem}
         />
       }
 
@@ -73,7 +103,7 @@ function App() {
                 title={item.title} 
                 price={item.price} 
                 imageUrl={item.imageUrl}
-                onFavorite={() => console.log('Dabavili v zakladki')}
+                onFavorite={(obj) => onAddToFavorite(obj)}
                 onPlus={onAddToCart}
               />
             ))
