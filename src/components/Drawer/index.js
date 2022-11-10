@@ -1,63 +1,99 @@
 import React from 'react';
+import axios from 'axios';
+
+import Info from '../Info';
+import { useCart } from '../../hooks/useCart';
+
 import styles from './Drawer.module.scss';
 
-const Drawer = (props) => {
-  return (
-    <div className={styles.overlay}>
-        <div className={styles.drawer}>
-            <div className="d-flex justify-between align-center mb-20">
-                <h3>Корзина</h3>
-                <img onClick={props.onClose} className="cu-p" src="./img/btn-remove.svg" alt="Exit" />
-            </div>
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-            {props.cartItems.length > 0 ?
-                <div>
-                    <div className={styles.items}>
-                       {props.cartItems.map((obj) => (
-                            <div className="cartItem d-flex align-center mt-20">
-                                <img
-                                    className="cartItemImg"
-                                    src={obj.imageUrl}
-                                    alt="Product"
-                                />
-                                <div>
-                                    <p>{obj.title}</p>
-                                    <b>{obj.price} руб.</b>
-                                </div>
-                                <img 
-                                    onClick={() => props.onRemove(obj.id)} 
-                                    className="removeBtn" src="./img/btn-remove.svg" 
-                                    alt="Remove"
-                                />
-                            </div>
-                        ))}
-                    </div>
-                    <div className="cartTotalBlock">
-                        <ul>
-                            <li className="d-flex">
-                                <span>Итоги:</span>
-                                <div></div>
-                                <b>21 498 руб.</b>
-                            </li>
-                            <li className="d-flex">
-                                <span>Налог 5%:</span>
-                                <div></div>
-                                <b>1 074 руб.</b>
-                            </li>
-                        </ul>
-                        <button className="greenButton">Оформить заказ <img src="./img/arrow.svg" alt="Arrow" /></button>
-                    </div>
+function Drawer({ onClose, onRemove, items = [], opened }) {
+  const { cartItems, setCartItems, totalPrice } = useCart();
+  const [orderId, setOrderId] = React.useState(null);
+  const [isOrderComplete, setIsOrderComplete] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const onClickOrder = async () => {
+    try {
+      setIsLoading(true);
+      const { data } = await axios.post('/orders', {
+        items: cartItems,
+      });
+      setOrderId(data.id);
+      setIsOrderComplete(true);
+      setCartItems([]);
+
+      for (let i = 0; i < cartItems.length; i++) {
+        const item = cartItems[i];
+        await axios.delete('/cart/' + item.id);
+        await delay(1000);
+      }
+    } catch (error) {
+      alert('Ошибка при создании заказа :(');
+    }
+    setIsLoading(false);
+  };
+
+  return (
+    <div className={`${styles.overlay} ${opened ? styles.overlayVisible : ''}`}>
+      <div className={styles.drawer}>
+        <h2 className="d-flex justify-between mb-30">
+          Корзина <img onClick={onClose} className="cu-p" src="img/btn-remove.svg" alt="Close" />
+        </h2>
+
+        {items.length > 0 ? (
+          <div className="d-flex flex-column flex">
+            <div className="items flex">
+              {items.map((obj) => (
+                <div key={obj.id} className="cartItem d-flex align-center mb-20">
+                  <img className="cartItemImg" src={obj.imageUrl} alt="Product"/>
+
+                  <div className="mr-20 flex">
+                    <p className="mb-5">{obj.title}</p>
+                    <b>{obj.price} руб.</b>
+                  </div>
+                  <img
+                    onClick={() => onRemove(obj.id)}
+                    className="removeBtn"
+                    src="img/btn-remove.svg"
+                    alt="Remove"
+                  />
                 </div>
-            :
-                <div className='cartEmpty d-flex align-center justify-between flex-column flex'>
-                    <img className='mb-20' width={120} height={120} src='./img/empty-cart.jpg' alt='Cart' />
-                    <h3>Корзина пустая</h3>
-                    <p className='opacity-6'>Добавьте хотя бы одну пару кроссовок, чтобы сделать заказ</p>
-                </div>
+              ))}
+            </div>
+            <div className="cartTotalBlock">
+              <ul>
+                <li>
+                  <span>Итого:</span>
+                  <div></div>
+                  <b>{totalPrice} руб. </b>
+                </li>
+                <li>
+                  <span>Налог 5%:</span>
+                  <div></div>
+                  <b>{(totalPrice / 100) * 5} руб. </b>
+                </li>
+              </ul>
+              <button disabled={isLoading} onClick={onClickOrder} className="greenButton">
+                Оформить заказ <img src="img/arrow.svg" alt="Arrow" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <Info
+            title={isOrderComplete ? 'Заказ оформлен!' : 'Корзина пустая'}
+            description={
+              isOrderComplete
+                ? `Ваш заказ #${orderId} скоро будет передан курьерской доставке`
+                : 'Добавьте хотя бы одну пару кроссовок, чтобы сделать заказ.'
             }
-        </div>
+            image={isOrderComplete ? 'img/complete-order.jpg' : 'img/empty-cart.jpg'}
+          />
+        )}
+      </div>
     </div>
-  )
+  );
 }
 
-export default Drawer
+export default Drawer;
